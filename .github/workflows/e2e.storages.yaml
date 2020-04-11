@@ -26,6 +26,8 @@ on:
 
 env:
   SKIP_TEST: true
+  SW_AGENT_JDK_VERSION: 8
+  CODECOV_TOKEN: d2065307-8f01-4637-9715-2781ef096db7
 
 jobs:
   StoragePlugins:
@@ -50,6 +52,14 @@ jobs:
         run: cp -R dist test/e2e/
       - name: Storage ${{ matrix.storage }}
         run: ./mvnw --batch-mode -f test/e2e/pom.xml -am -DfailIfNoTests=false verify -Dit.test=org.apache.skywalking.e2e.storage.StorageE2E
+      - name: Upload Coverage
+        run: |
+          for exec_data in $(ls test/e2e/e2e-test/jacoco/*.exec); do
+            exec_data=${exec_data/*\//}
+            exec_data=${exec_data/.*/}
+            java -jar test/e2e/e2e-test/jacoco/jacococli.jar report test/e2e/e2e-test/jacoco/$exec_data.exec --classfiles test/e2e/e2e-test/jacoco/classes/$exec_data --xml=/tmp/report-$exec_data.xml
+          done
+          bash <(curl -s https://codecov.io/bash) -X fix -f /tmp/report-*.xml
       - uses: actions/upload-artifact@v1
         if: failure()
         with:
